@@ -1,0 +1,57 @@
+/* Status indicators */
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #6c757d;
+    display: inline-block;
+    margin-right: 8px;
+    transition: background-color 0.3s ease;
+}
+
+.status-dot.connected {
+    background-color: #28a745;
+}
+
+.status-dot.disconnected {
+    background-color: #dc3545;
+}
+
+.status-dot.active {
+    background-color: #28a745;
+    animation: pulse 2s infinite;
+}
+
+.status-dot.ready {
+    background-color: #17a2b8;
+}
+
+.status-dot.waiting {
+    background-color: #ffc107;
+}
+
+.status-dot.initializing {
+    background-color: #6c757d;
+    animation: pulse 1s infinite;
+}
+
+.status-dot.inactive {
+    background-color: #6c757d;
+}
+
+.status-dot.error {
+    background-color: #dc3545;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 1;
+    }
+} 

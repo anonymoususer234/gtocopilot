@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PokerNow GTO Copilot</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="header">
+        <div class="logo">🎯</div>
+        <div class="title">GTO Copilot</div>
+        <div class="subtitle">PokerNow Assistant</div>
+    </div>
+
+    <div class="status-section">
+        <div class="status-row">
+            <span class="status-label">Extension Status</span>
+            <div class="status-indicator">
+                <div class="status-dot" id="extension-status"></div>
+                <span id="extension-text">Loading...</span>
+            </div>
+        </div>
+        
+        <div class="status-row">
+            <span class="status-label">PokerNow Connection</span>
+            <div class="status-indicator">
+                <div class="status-dot" id="pokernow-status"></div>
+                <span id="pokernow-text">Checking...</span>
+            </div>
+        </div>
+        
+        <div class="status-row">
+            <span class="status-label">Game Detection</span>
+            <div class="status-indicator">
+                <div class="status-dot" id="game-status"></div>
+                <span id="game-text">Idle</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls-section">
+        <div id="error-container" class="hidden"></div>
+        <div id="success-container" class="hidden"></div>
+        
+        <div class="control-group">
+            <div class="control-label">Quick Actions</div>
+            <button class="button button-secondary" id="toggle-copilot">
+                <span class="loading hidden" id="toggle-loading"></span>
+                <span id="toggle-text">Toggle Copilot</span>
+            </button>
+            <button class="button button-secondary" id="refresh-state">
+                <span class="loading hidden" id="refresh-loading"></span>
+                <span id="refresh-text">Refresh Game State</span>
+            </button>
+        </div>
+
+        <div class="control-group">
+            <div class="control-label">Settings</div>
+            <button class="button button-secondary" id="toggle-debug">Debug Mode</button>
+        </div>
+
+        <div class="control-group">
+            <button class="button button-primary" id="open-pokernow">Open PokerNow</button>
+        </div>
+    </div>
+
+    <div class="shortcuts-section">
+        <div class="shortcuts-title">Keyboard Shortcuts</div>
+        <div class="shortcut">
+            <span class="shortcut-action">Toggle Copilot</span>
+            <span class="shortcut-keys">Ctrl+Shift+P</span>
+        </div>
+        <div class="shortcut">
+            <span class="shortcut-action">Refresh State</span>
+            <span class="shortcut-keys">Ctrl+Shift+R</span>
+        </div>
+        <div class="shortcut">
+            <span class="shortcut-action">Debug Mode</span>
+            <span class="shortcut-keys">Ctrl+Shift+D</span>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html> 

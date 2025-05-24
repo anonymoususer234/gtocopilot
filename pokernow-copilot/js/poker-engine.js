@@ -28,23 +28,71 @@ class PokerEngine {
     }
 
     /**
-     * Parse a card string like "As", "Kh", "Qd", "Jc"
+     * Parse a card string or object into a standardized card object
      */
-    parseCard(cardStr) {
-        if (!cardStr || cardStr.length < 2) return null;
-        
-        const rank = cardStr[0].toUpperCase();
-        const suit = cardStr[1].toLowerCase();
-        
-        if (!this.ranks.includes(rank)) return null;
-        if (!['s', 'h', 'd', 'c'].includes(suit)) return null;
-        
-        return {
-            rank: rank,
-            suit: suit,
-            value: this.rankValues[rank],
-            card: rank + suit
+    parseCard(card) {
+        try {
+            // If already a card object with rank and suit, return as is
+            if (typeof card === 'object' && card.rank && card.suit) {
+                return {
+                    rank: this.normalizeRank(card.rank),
+                    suit: this.normalizeSuit(card.suit),
+                    value: this.getCardValue(card.rank)
+                };
+            }
+            
+            // If it's a string, parse it
+            if (typeof card === 'string' && card.length >= 2) {
+                const rankPart = card.slice(0, -1);
+                const suitPart = card.slice(-1);
+                
+                return {
+                    rank: this.normalizeRank(rankPart),
+                    suit: this.normalizeSuit(suitPart),
+                    value: this.getCardValue(rankPart)
+                };
+            }
+            
+            // If it's a single character (just rank), default to spades
+            if (typeof card === 'string' && card.length === 1) {
+                return {
+                    rank: this.normalizeRank(card),
+                    suit: 's',
+                    value: this.getCardValue(card)
+                };
+            }
+            
+            console.warn('🃏 Could not parse card:', card);
+            return null;
+            
+        } catch (error) {
+            console.error('🃏 Error parsing card:', card, error);
+            return null;
+        }
+    }
+    
+    /**
+     * Normalize rank to standard format
+     */
+    normalizeRank(rank) {
+        const rankMap = {
+            'A': 'A', 'K': 'K', 'Q': 'Q', 'J': 'J', 'T': 'T', '10': 'T',
+            '9': '9', '8': '8', '7': '7', '6': '6', '5': '5', '4': '4', '3': '3', '2': '2'
         };
+        return rankMap[rank] || rank;
+    }
+    
+    /**
+     * Normalize suit to standard format
+     */
+    normalizeSuit(suit) {
+        const suitMap = {
+            's': 's', 'spades': 's', '♠': 's',
+            'h': 'h', 'hearts': 'h', '♥': 'h',
+            'd': 'd', 'diamonds': 'd', '♦': 'd',
+            'c': 'c', 'clubs': 'c', '♣': 'c'
+        };
+        return suitMap[suit] || suit;
     }
 
     /**
@@ -264,12 +312,25 @@ class PokerEngine {
     }
 
     /**
-     * Get preflop hand strength for hole cards
+     * Get preflop hand strength for hole cards - SAFE VERSION
      */
     getPreflopStrength(holeCards) {
         if (!holeCards || holeCards.length !== 2) return { strength: 0, description: 'Invalid hand' };
         
-        const [card1, card2] = holeCards;
+        // Safely parse cards instead of assuming they're objects
+        let card1, card2;
+        try {
+            card1 = this.parseCard(holeCards[0]);
+            card2 = this.parseCard(holeCards[1]);
+            
+            if (!card1 || !card2) {
+                return { strength: 0, description: 'Could not parse cards' };
+            }
+        } catch (error) {
+            console.warn('🃏 Error parsing cards in getPreflopStrength:', error);
+            return { strength: 0, description: 'Card parsing error' };
+        }
+        
         const isPair = card1.rank === card2.rank;
         const isSuited = card1.suit === card2.suit;
         
@@ -318,6 +379,14 @@ class PokerEngine {
             isPair: isPair,
             isSuited: isSuited
         };
+    }
+
+    /**
+     * Get numeric value for a card rank
+     */
+    getCardValue(rank) {
+        const normalizedRank = this.normalizeRank(rank);
+        return this.rankValues[normalizedRank] || 0;
     }
 }
 

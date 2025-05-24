@@ -18,7 +18,17 @@ class PokerNowParser {
             stackSize: 0,
             street: 'preflop',
             isMyTurn: false,
-            lastUpdate: 0
+            lastUpdate: 0,
+            // Enhanced game state
+            playerBets: [], // All players' bets
+            opponentBets: [], // Just opponent bets  
+            dealerPosition: null,
+            myPosition: null,
+            positionName: null, // SB, BB, BTN, CO, etc.
+            bettingAction: [], // Sequence of actions
+            facingBet: 0, // Amount facing (different from toCall)
+            potOdds: null,
+            effectiveStack: 0
         };
         
         // PokerNow-specific selectors based on the provided HTML
@@ -50,7 +60,7 @@ class PokerNowParser {
         
         this.lastGameLogLength = 0;
         this.observerActive = false;
-        this.debugMode = false;
+        this.debugMode = false; // Disable debug mode to reduce interference and console spam
     }
 
     /**
@@ -68,19 +78,31 @@ class PokerNowParser {
     }
 
     /**
-     * Start monitoring the page for changes
+     * Start monitoring PokerNow for game state changes
      */
     startMonitoring() {
-        // Initial parse
-        this.parseGameState();
+        console.log('🎯 PokerNow Copilot: PokerNow parser active and monitoring...');
         
-        // Set up mutation observer to watch for DOM changes
+        // Set up mutation observer for real-time updates
         this.setupMutationObserver();
         
-        // Set up periodic updates
-        this.setupPeriodicUpdates();
+        // Do initial parse regardless of detection
+        this.parseGameState();
         
-        console.log('🎯 PokerNow Copilot: PokerNow parser active and monitoring...');
+        // Set up regular monitoring interval (every 2 seconds)
+        setInterval(() => {
+            this.parseGameState();
+        }, 2000);
+        
+        // Also set up a more frequent check for game detection (every 5 seconds)
+        setInterval(() => {
+            if (!this.gameState.isActive) {
+                console.log('🔍 Checking for new poker game...');
+                this.parseGameState();
+            }
+        }, 5000);
+        
+        console.log('🎯 PokerNow monitoring started with aggressive detection');
     }
 
     /**
@@ -131,12 +153,39 @@ class PokerNowParser {
     }
 
     /**
-     * Set up periodic updates as fallback
+     * Debug method to show what elements are on the page
      */
-    setupPeriodicUpdates() {
-        setInterval(() => {
-            this.parseGameState();
-        }, 1000); // Update every 1 second for real-time feel
+    debugPageElements() {
+        // Always run debug for first few times to help with troubleshooting
+        if (!this.debugMode && this.parseCount > 3) return;
+        
+        console.log('🔍 PokerNow Page Debug Info:', {
+            url: window.location.href,
+            title: document.title,
+            bodyClasses: document.body.className,
+            
+            // Check for common game elements
+            tableElements: document.querySelectorAll('[class*="table"]').length,
+            gameElements: document.querySelectorAll('[class*="game"]').length,
+            cardElements: document.querySelectorAll('[class*="card"]').length,
+            playerElements: document.querySelectorAll('[class*="player"]').length,
+            buttonElements: document.querySelectorAll('button').length,
+            
+            // Show some actual class names we find
+            sampleClassNames: Array.from(document.querySelectorAll('*'))
+                .map(el => el.className)
+                .filter(cls => cls && cls.length > 0)
+                .slice(0, 20),
+                
+            // Check for specific text content
+            hasPokerTerms: {
+                fold: document.body.textContent.includes('Fold'),
+                call: document.body.textContent.includes('Call'),
+                raise: document.body.textContent.includes('Raise'),
+                allIn: document.body.textContent.includes('All-in'),
+                check: document.body.textContent.includes('Check')
+            }
+        });
     }
 
     /**
@@ -144,6 +193,12 @@ class PokerNowParser {
      */
     parseGameState() {
         try {
+            // Track parse count for debugging
+            this.parseCount = (this.parseCount || 0) + 1;
+            
+            // Debug page elements first
+            this.debugPageElements();
+            
             const newGameState = {
                 isActive: this.isGameActive(),
                 holeCards: this.parseHoleCards(),
@@ -156,11 +211,21 @@ class PokerNowParser {
                 stackSize: this.parseStackSize(),
                 street: this.parseStreet(),
                 isMyTurn: this.isMyTurn(),
-                lastUpdate: Date.now()
+                lastUpdate: Date.now(),
+                // Enhanced parsing
+                playerBets: this.parseAllPlayerBets(),
+                opponentBets: this.parseOpponentBets(),
+                dealerPosition: this.parseDealerPosition(),
+                myPosition: this.parseMyPosition(),
+                positionName: this.parsePositionName(),
+                bettingAction: this.parseBettingAction(),
+                facingBet: this.parseFacingBet(),
+                potOdds: this.calculatePotOdds(),
+                effectiveStack: this.calculateEffectiveStack()
             };
             
-            // Debug logging
-            if (this.debugMode) {
+            // Debug logging - always log for first few attempts
+            if (this.debugMode || this.parseCount <= 5) {
                 console.log('🎮 PokerNow parsed game state:', newGameState);
             }
             
@@ -181,15 +246,67 @@ class PokerNowParser {
      * Check if we're in an active poker game
      */
     isGameActive() {
-        // Check for PokerNow game indicators
+        // More comprehensive PokerNow game detection
         const indicators = [
+            // Try multiple possible selectors for PokerNow
             document.querySelector('.table'),
             document.querySelector('.game-main-container'),
             document.querySelector('.table-player'),
-            document.querySelector('.action-buttons')
+            document.querySelector('.action-buttons'),
+            
+            // Additional PokerNow selectors (broader search)
+            document.querySelector('[class*="table"]'),
+            document.querySelector('[class*="player"]'),
+            document.querySelector('[class*="card"]'),
+            document.querySelector('[class*="poker"]'),
+            document.querySelector('[class*="game"]'),
+            document.querySelector('[class*="pot"]'),
+            document.querySelector('[class*="bet"]'),
+            document.querySelector('[class*="action"]'),
+            
+            // Generic poker game indicators
+            document.querySelector('[data-testid*="game"]'),
+            document.querySelector('[data-testid*="table"]'),
+            document.querySelector('[data-testid*="poker"]'),
+            
+            // Check for URLs that indicate we're in a game
+            window.location.pathname.includes('/game'),
+            window.location.pathname.includes('/table'),
+            window.location.pathname.includes('/poker'),
+            window.location.href.includes('poker'),
+            
+            // Check for common poker terms in page content
+            document.body.textContent.includes('All-in'),
+            document.body.textContent.includes('Fold'),
+            document.body.textContent.includes('Call'),
+            document.body.textContent.includes('Raise'),
+            document.body.textContent.includes('Bet'),
+            
+            // Check for PokerNow specific elements
+            document.querySelector('body[class*="poker"]'),
+            document.querySelector('div[class*="game"]'),
+            document.querySelector('div[class*="table"]')
         ];
         
-        return indicators.some(el => el !== null);
+        const foundIndicators = indicators.filter(indicator => indicator !== null && indicator !== false);
+        const isActive = foundIndicators.length > 0;
+        
+        // Debug logging to see what we're finding
+        if (this.debugMode || !isActive) {
+            console.log('🎮 Game detection check:', {
+                isActive,
+                foundIndicators: foundIndicators.length,
+                url: window.location.href,
+                foundElements: foundIndicators.slice(0, 5), // Show first 5 found elements
+                bodyClasses: document.body.className,
+                allClassNames: Array.from(document.querySelectorAll('*'))
+                    .map(el => el.className)
+                    .filter(cls => cls && (cls.includes('game') || cls.includes('table') || cls.includes('poker') || cls.includes('card')))
+                    .slice(0, 10) // Show first 10 relevant class names
+            });
+        }
+        
+        return isActive;
     }
 
     /**
@@ -496,6 +613,159 @@ class PokerNowParser {
     disableDebugMode() {
         this.debugMode = false;
         console.log('🔧 PokerNow parser debug mode disabled');
+    }
+
+    // New methods for enhanced game state detection
+    parseAllPlayerBets() {
+        const playerBets = [];
+        const allPlayers = document.querySelectorAll('.table-player');
+        
+        allPlayers.forEach((player, index) => {
+            const betElement = player.querySelector('.table-player-bet-value .normal-value');
+            const nameElement = player.querySelector('.table-player-name a');
+            const stackElement = player.querySelector('.table-player-stack .normal-value');
+            const isYou = player.classList.contains('you-player');
+            const isDeciding = player.classList.contains('decision-current');
+            
+            const bet = betElement ? this.extractAmount(betElement.textContent) : 0;
+            const stack = stackElement ? this.extractAmount(stackElement.textContent) : 0;
+            const name = nameElement ? nameElement.textContent.trim() : `Player ${index + 1}`;
+            
+            playerBets.push({
+                position: index + 1,
+                name,
+                bet,
+                stack,
+                isYou,
+                isDeciding,
+                element: player
+            });
+        });
+        
+        return playerBets;
+    }
+
+    parseOpponentBets() {
+        const allBets = this.parseAllPlayerBets();
+        return allBets.filter(player => !player.isYou);
+    }
+
+    parseDealerPosition() {
+        const dealerButton = document.querySelector('[class*="dealer-position-"]');
+        if (dealerButton) {
+            const className = dealerButton.className;
+            const match = className.match(/dealer-position-(\d+)/);
+            return match ? parseInt(match[1]) : null;
+        }
+        return null;
+    }
+
+    parseMyPosition() {
+        const youPlayer = document.querySelector('.table-player.you-player');
+        if (youPlayer) {
+            const className = youPlayer.className;
+            const match = className.match(/table-player-(\d+)/);
+            return match ? parseInt(match[1]) : null;
+        }
+        return null;
+    }
+
+    parsePositionName() {
+        const dealerPos = this.parseDealerPosition();
+        const myPos = this.parseMyPosition();
+        const totalPlayers = this.parseActivePlayers();
+        
+        if (!dealerPos || !myPos) return 'Unknown';
+        
+        // Calculate position relative to dealer
+        if (totalPlayers === 2) {
+            // Heads-up: Button is Small Blind
+            if (myPos === dealerPos) {
+                return 'SB/BTN'; // Small Blind / Button
+            } else {
+                return 'BB'; // Big Blind
+            }
+        } else if (totalPlayers >= 3) {
+            // Multi-way: Calculate position
+            const seatDiff = (myPos - dealerPos + totalPlayers) % totalPlayers;
+            
+            if (seatDiff === 0) return 'BTN';
+            if (seatDiff === 1) return 'SB';
+            if (seatDiff === 2) return 'BB';
+            if (seatDiff === 3) return 'UTG';
+            if (seatDiff === 4) return 'UTG+1';
+            if (seatDiff === 5) return 'MP';
+            if (seatDiff === 6) return 'MP+1';
+            if (seatDiff === 7) return 'HJ';
+            if (seatDiff === 8) return 'CO';
+            
+            // For larger tables, generalize
+            if (seatDiff <= totalPlayers / 2) return 'Early';
+            if (seatDiff <= totalPlayers * 0.75) return 'Middle';
+            return 'Late';
+        }
+        
+        return 'Unknown';
+    }
+
+    parseBettingAction() {
+        // This would ideally parse the game log, but for now return current state
+        const allBets = this.parseAllPlayerBets();
+        const actions = [];
+        
+        allBets.forEach(player => {
+            if (player.bet > 0) {
+                actions.push({
+                    player: player.name,
+                    position: player.position,
+                    action: 'bet',
+                    amount: player.bet,
+                    isYou: player.isYou
+                });
+            }
+        });
+        
+        return actions;
+    }
+
+    parseFacingBet() {
+        const opponentBets = this.parseOpponentBets();
+        const myBets = this.parseAllPlayerBets().filter(p => p.isYou);
+        
+        if (opponentBets.length === 0) return 0;
+        
+        const highestOpponentBet = Math.max(...opponentBets.map(p => p.bet));
+        const myBet = myBets.length > 0 ? myBets[0].bet : 0;
+        
+        return Math.max(0, highestOpponentBet - myBet);
+    }
+
+    calculatePotOdds() {
+        const potSize = this.parsePotSize();
+        const facingBet = this.parseFacingBet();
+        
+        if (facingBet === 0) return null;
+        
+        const totalPot = potSize + facingBet;
+        const odds = facingBet / totalPot;
+        const percentage = (odds * 100).toFixed(1);
+        
+        return {
+            ratio: `${facingBet}:${totalPot}`,
+            percentage: parseFloat(percentage),
+            description: `${percentage}% pot odds`
+        };
+    }
+
+    calculateEffectiveStack() {
+        const allBets = this.parseAllPlayerBets();
+        const myStack = allBets.find(p => p.isYou)?.stack || 0;
+        const opponentStacks = allBets.filter(p => !p.isYou).map(p => p.stack);
+        
+        if (opponentStacks.length === 0) return myStack;
+        
+        const smallestOpponentStack = Math.min(...opponentStacks);
+        return Math.min(myStack, smallestOpponentStack);
     }
 }
 

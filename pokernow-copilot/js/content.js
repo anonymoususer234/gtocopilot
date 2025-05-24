@@ -1,9 +1,10 @@
 /**
  * PokerNow GTO Copilot - Main Content Script
  * Initializes and coordinates all copilot components
+ * Version: 2.1 - Enhanced Detection & Debugging
  */
 
-console.log('🎯 PokerNow GTO Copilot - Content Script Loading...');
+console.log('🎯 Starting copilot initialization v2.1...');
 
 // Global copilot object
 window.PokerCopilot = {
@@ -13,6 +14,7 @@ window.PokerCopilot = {
     advisor: null,
     parser: null,
     ui: null,
+    version: '2.1',
     
     // Initialize the copilot
     async init() {
@@ -608,6 +610,141 @@ document.addEventListener('pokerGameStateUpdate', (event) => {
         console.log('🎮 Real-time game update:', event.detail);
     }
 });
+
+// Message handling for popup communication
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    console.log('📨 Content script received message:', request);
+    
+    try {
+        switch (request.action) {
+            case 'getStatus':
+                const status = window.PokerCopilot ? window.PokerCopilot.getStatus() : null;
+                sendResponse({
+                    success: true,
+                    initialized: window.PokerCopilot ? window.PokerCopilot.initialized : false,
+                    gameState: status ? status.gameState : null,
+                    features: status ? status.features : null,
+                    version: window.PokerCopilot ? window.PokerCopilot.version : 'unknown'
+                });
+                break;
+                
+            case 'toggleCopilot':
+                if (window.PokerCopilot && window.PokerCopilot.ui && window.PokerCopilot.ui.toggle) {
+                    window.PokerCopilot.ui.toggle();
+                    sendResponse({ success: true, message: 'Copilot toggled' });
+                } else {
+                    sendResponse({ success: false, error: 'Copilot UI not available' });
+                }
+                break;
+                
+            case 'refreshState':
+                if (window.PokerCopilot && window.PokerCopilot.parser) {
+                    window.PokerCopilot.parser.forceUpdate();
+                    sendResponse({ success: true, message: 'State refreshed' });
+                } else {
+                    sendResponse({ success: false, error: 'Parser not available' });
+                }
+                break;
+                
+            case 'toggleDebug':
+                if (window.PokerCopilot && window.PokerCopilot.toggleDebugMode) {
+                    const debugEnabled = window.PokerCopilot.toggleDebugMode();
+                    sendResponse({ 
+                        success: true, 
+                        debugEnabled, 
+                        message: `Debug mode ${debugEnabled ? 'enabled' : 'disabled'}` 
+                    });
+                } else {
+                    sendResponse({ success: false, error: 'Debug toggle not available' });
+                }
+                break;
+                
+            case 'getCurrentAnalysis':
+                if (window.PokerCopilot && window.PokerCopilot.getCurrentAnalysis) {
+                    const analysis = window.PokerCopilot.getCurrentAnalysis();
+                    sendResponse({ 
+                        success: true, 
+                        analysis,
+                        message: analysis ? 'Analysis available' : 'No active game to analyze'
+                    });
+                } else {
+                    sendResponse({ success: false, error: 'Analysis not available' });
+                }
+                break;
+                
+            default:
+                sendResponse({ success: false, error: 'Unknown action: ' + request.action });
+        }
+    } catch (error) {
+        console.error('❌ Error handling message:', error);
+        sendResponse({ success: false, error: error.message });
+    }
+    
+    return true; // Keep message channel open for async response
+});
+
+// Also expose a global status function for debugging
+window.getCopilotStatus = function() {
+    if (window.PokerCopilot) {
+        return {
+            initialized: window.PokerCopilot.initialized,
+            version: window.PokerCopilot.version,
+            status: window.PokerCopilot.getStatus(),
+            analysis: window.PokerCopilot.getCurrentAnalysis()
+        };
+    }
+    return { error: 'PokerCopilot not found' };
+};
+
+// Add debug helper function
+window.debugPokerNow = function() {
+    console.log('🔍 PokerNow Debug Helper - Checking page elements...');
+    
+    const elements = {
+        // Check for copilot
+        copilotUI: document.getElementById('pokernow-copilot'),
+        copilotStatus: window.PokerCopilot ? window.PokerCopilot.getStatus() : null,
+        
+        // Check for game elements
+        gameContainer: document.querySelector('.game-main-container'),
+        table: document.querySelector('.table'),
+        players: document.querySelectorAll('.table-player'),
+        yourPlayer: document.querySelector('.table-player.you-player'),
+        yourCards: document.querySelector('.table-player.you-player .table-player-cards'),
+        actionButtons: document.querySelectorAll('.action-button'),
+        potSize: document.querySelector('.table-pot-size'),
+        
+        // Check for cards specifically
+        cardContainers: document.querySelectorAll('.card-container'),
+        flippedCards: document.querySelectorAll('.card-container.flipped'),
+        cardValues: Array.from(document.querySelectorAll('.card .value')).map(el => el.textContent),
+        cardSuits: Array.from(document.querySelectorAll('.card .suit')).map(el => el.textContent),
+        
+        // Check page state
+        url: window.location.href,
+        title: document.title,
+        isPokerNow: window.location.hostname.includes('pokernow.club'),
+        hasPokerTerms: document.body.textContent.includes('Fold') || document.body.textContent.includes('Call')
+    };
+    
+    console.log('📊 Debug Results:', elements);
+    
+    // Check if we can parse cards manually
+    if (elements.flippedCards.length > 0) {
+        console.log('🃏 Found flipped cards:', Array.from(elements.flippedCards).map(card => {
+            const value = card.querySelector('.value')?.textContent;
+            const suit = card.querySelector('.suit')?.textContent;
+            return { value, suit, element: card };
+        }));
+    }
+    
+    // Show current parsed game state
+    if (window.PokerCopilot && window.PokerCopilot.parser) {
+        console.log('🎮 Current game state:', window.PokerCopilot.parser.getGameState());
+    }
+    
+    return elements;
+};
 
 // Start initialization
 initializeCopilot(); 
