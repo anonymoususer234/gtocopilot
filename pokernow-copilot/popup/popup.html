@@ -71,8 +71,8 @@
 <body>
     <div class="gto-header">GTO Copilot</div>
     <div class="gto-section">
-        <div class="gto-label">Blind Levels</div>
-        <div class="row g-2 align-items-center mt-1">
+        <div class="gto-label mb-2">Blind Levels</div>
+        <div class="row g-2 align-items-center mt-1 mb-2">
             <div class="col-auto">
                 <label for="sb" class="form-label mb-0">SB</label>
                 <input type="number" id="sb" class="form-control form-control-sm" style="width: 70px;" min="0.01" step="0.01" value="1">
@@ -87,11 +87,11 @@
         </div>
     </div>
     <div class="gto-section">
-        <div class="gto-label">Your Cards</div>
-        <div id="your-cards" class="mb-2"></div>
-        <div class="gto-label">Board</div>
-        <div id="board-cards" class="mb-2"></div>
-        <div class="row g-2">
+        <div class="gto-label mb-2">Your Cards</div>
+        <div id="your-cards" class="gto-cards-row mb-3"></div>
+        <div class="gto-label mb-2">Board</div>
+        <div id="board-cards" class="gto-cards-row mb-3"></div>
+        <div class="row g-2 mb-2">
             <div class="col">
                 <div class="gto-label">Pot</div>
                 <div id="pot" class="gto-value">$0</div>
@@ -105,7 +105,7 @@
                 <div id="stack" class="gto-value">$0</div>
             </div>
         </div>
-        <div class="row g-2 mt-2">
+        <div class="row g-2 mb-2">
             <div class="col">
                 <div class="gto-label">Position</div>
                 <div id="position" class="gto-value">BTN</div>
