@@ -9,11 +9,17 @@
     "scripting"
   ],
   "host_permissions": [
-    "https://www.pokernow.club/*"
+    "https://www.pokernow.club/*",
+    "https://pokernow.club/*",
+    "https://*.pokernow.club/*"
   ],
   "content_scripts": [
     {
-      "matches": ["https://www.pokernow.club/*"],
+      "matches": [
+        "https://www.pokernow.club/*",
+        "https://pokernow.club/*", 
+        "https://*.pokernow.club/*"
+      ],
       "js": [
         "js/poker-engine.js",
         "js/equity-calculator.js", 

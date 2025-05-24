@@ -4,83 +4,127 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PokerNow GTO Copilot</title>
+    <!-- Modern UI library placeholder (e.g., Shoelace, Bootstrap) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="popup.css">
+    <style>
+        body {
+            background: #23272a;
+            color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .gto-header {
+            background: #23272a;
+            color: #f8f9fa;
+            padding: 1rem 1.5rem 0.5rem 1.5rem;
+            border-bottom: 1px solid #444;
+            font-size: 1.3rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+        .gto-section {
+            background: #2c2f33;
+            border-radius: 8px;
+            margin: 1rem 1.5rem;
+            padding: 1rem 1.2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .gto-label {
+            color: #ffd700;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        .gto-value {
+            color: #00c853;
+            font-weight: 600;
+        }
+        .gto-btn {
+            background: #00c853;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 0.5rem 1.2rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+        .gto-btn:active, .gto-btn:focus {
+            background: #009624;
+        }
+        .gto-advice {
+            background: #23272a;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 1.5rem;
+            color: #f8f9fa;
+        }
+        .gto-confidence {
+            background: #ffd700;
+            color: #23272a;
+            border-radius: 4px;
+            padding: 0.2rem 0.7rem;
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-left: 0.5rem;
+        }
+    </style>
 </head>
 <body>
-    <div class="header">
-        <div class="logo">🎯</div>
-        <div class="title">GTO Copilot</div>
-        <div class="subtitle">PokerNow Assistant</div>
-    </div>
-
-    <div class="status-section">
-        <div class="status-row">
-            <span class="status-label">Extension Status</span>
-            <div class="status-indicator">
-                <div class="status-dot" id="extension-status"></div>
-                <span id="extension-text">Loading...</span>
+    <div class="gto-header">GTO Copilot</div>
+    <div class="gto-section">
+        <div class="gto-label">Blind Levels</div>
+        <div class="row g-2 align-items-center mt-1">
+            <div class="col-auto">
+                <label for="sb" class="form-label mb-0">SB</label>
+                <input type="number" id="sb" class="form-control form-control-sm" style="width: 70px;" min="0.01" step="0.01" value="1">
             </div>
-        </div>
-        
-        <div class="status-row">
-            <span class="status-label">PokerNow Connection</span>
-            <div class="status-indicator">
-                <div class="status-dot" id="pokernow-status"></div>
-                <span id="pokernow-text">Checking...</span>
+            <div class="col-auto">
+                <label for="bb" class="form-label mb-0">BB</label>
+                <input type="number" id="bb" class="form-control form-control-sm" style="width: 70px;" min="0.01" step="0.01" value="2">
             </div>
-        </div>
-        
-        <div class="status-row">
-            <span class="status-label">Game Detection</span>
-            <div class="status-indicator">
-                <div class="status-dot" id="game-status"></div>
-                <span id="game-text">Idle</span>
+            <div class="col-auto">
+                <button id="update-blinds" class="gto-btn">Update</button>
             </div>
         </div>
     </div>
-
-    <div class="controls-section">
-        <div id="error-container" class="hidden"></div>
-        <div id="success-container" class="hidden"></div>
-        
-        <div class="control-group">
-            <div class="control-label">Quick Actions</div>
-            <button class="button button-secondary" id="toggle-copilot">
-                <span class="loading hidden" id="toggle-loading"></span>
-                <span id="toggle-text">Toggle Copilot</span>
-            </button>
-            <button class="button button-secondary" id="refresh-state">
-                <span class="loading hidden" id="refresh-loading"></span>
-                <span id="refresh-text">Refresh Game State</span>
-            </button>
+    <div class="gto-section">
+        <div class="gto-label">Your Cards</div>
+        <div id="your-cards" class="mb-2"></div>
+        <div class="gto-label">Board</div>
+        <div id="board-cards" class="mb-2"></div>
+        <div class="row g-2">
+            <div class="col">
+                <div class="gto-label">Pot</div>
+                <div id="pot" class="gto-value">$0</div>
+            </div>
+            <div class="col">
+                <div class="gto-label">To Call</div>
+                <div id="to-call" class="gto-value">$0</div>
+            </div>
+            <div class="col">
+                <div class="gto-label">Stack</div>
+                <div id="stack" class="gto-value">$0</div>
+            </div>
         </div>
-
-        <div class="control-group">
-            <div class="control-label">Settings</div>
-            <button class="button button-secondary" id="toggle-debug">Debug Mode</button>
-        </div>
-
-        <div class="control-group">
-            <button class="button button-primary" id="open-pokernow">Open PokerNow</button>
-        </div>
-    </div>
-
-    <div class="shortcuts-section">
-        <div class="shortcuts-title">Keyboard Shortcuts</div>
-        <div class="shortcut">
-            <span class="shortcut-action">Toggle Copilot</span>
-            <span class="shortcut-keys">Ctrl+Shift+P</span>
-        </div>
-        <div class="shortcut">
-            <span class="shortcut-action">Refresh State</span>
-            <span class="shortcut-keys">Ctrl+Shift+R</span>
-        </div>
-        <div class="shortcut">
-            <span class="shortcut-action">Debug Mode</span>
-            <span class="shortcut-keys">Ctrl+Shift+D</span>
+        <div class="row g-2 mt-2">
+            <div class="col">
+                <div class="gto-label">Position</div>
+                <div id="position" class="gto-value">BTN</div>
+            </div>
+            <div class="col">
+                <div class="gto-label">Facing</div>
+                <div id="facing" class="gto-value">$0</div>
+            </div>
         </div>
     </div>
-
+    <div class="gto-advice">
+        <div class="d-flex align-items-center mb-2">
+            <div class="gto-label">Recommended Action</div>
+            <span id="confidence" class="gto-confidence">--</span>
+        </div>
+        <div id="action-main" class="mb-1"></div>
+        <div id="action-frequencies" class="mb-1"></div>
+        <div id="action-reasoning" class="mb-1"></div>
+    </div>
     <script src="popup.js"></script>
 </body>
 </html> 

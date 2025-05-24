@@ -4,6 +4,33 @@
  * Version: 2.1 - Enhanced Detection & Debugging
  */
 
+// === EARLY DIAGNOSTIC LOGGING ===
+console.log('🎯 PokerNow GTO Copilot Content Script Loading...');
+console.log('📍 URL:', window.location.href);
+console.log('📍 Hostname:', window.location.hostname);
+console.log('📍 Title:', document.title);
+console.log('📍 Loading time:', new Date().toISOString());
+
+// Check if we're on the right domain early
+if (!window.location.hostname.includes('pokernow.club')) {
+    console.log('❌ Not on PokerNow domain - content script will not activate');
+} else {
+    console.log('✅ On PokerNow domain - proceeding with initialization');
+}
+
+// Add a simple test function that popup can call to verify content script is loaded
+window.testContentScript = function() {
+    console.log('🧪 Content script test function called - content script is loaded!');
+    return {
+        loaded: true,
+        timestamp: Date.now(),
+        url: window.location.href,
+        hostname: window.location.hostname,
+        copilotExists: !!window.PokerCopilot,
+        copilotInitialized: window.PokerCopilot ? window.PokerCopilot.initialized : false
+    };
+};
+
 console.log('🎯 Starting copilot initialization v2.1...');
 
 // Global copilot object
@@ -327,10 +354,8 @@ document.addEventListener('keydown', (e) => {
             const debugEnabled = window.PokerCopilot.toggleDebugMode();
             console.log(`🔧 Debug mode ${debugEnabled ? 'enabled' : 'disabled'}`);
             
-            // Also run HTML inspection
-            if (debugEnabled) {
-                window.inspectPokerNowHTML();
-            }
+            // Note: Removed automatic HTML inspection to prevent interference with PokerNow
+            // Use Ctrl+Shift+I if you need to inspect elements
         } catch (error) {
             console.error('❌ Error toggling debug mode:', error);
         }
@@ -360,246 +385,56 @@ document.addEventListener('keydown', (e) => {
     }
 }, true); // Use capture mode to intercept events
 
-// Add comprehensive PokerNow HTML inspection function
+// Add lightweight PokerNow HTML inspection function - safe version
 window.inspectPokerNowHTML = function() {
-    console.log('🔍 COMPREHENSIVE PokerNow HTML Inspector Running...');
+    console.log('🔍 PokerNow HTML Inspector - Safe Mode');
     console.log('📋 Current page URL:', window.location.href);
     console.log('📋 Page title:', document.title);
     
-    // 1. Find ALL images that might be cards
-    console.log('\n🖼️ === CARD IMAGES ===');
-    const images = document.querySelectorAll('img');
-    let cardImages = [];
-    images.forEach((img, i) => {
-        const src = img.src || '';
-        const alt = img.alt || '';
-        const className = img.className || '';
-        const id = img.id || '';
-        
-        // Check if image might be a card
-        if (src.includes('card') || alt.includes('card') || className.includes('card') ||
-            src.includes('suit') || alt.includes('suit') || className.includes('suit') ||
-            /[A-K2-9][sdch]/.test(src) || /[A-K2-9][sdch]/.test(alt)) {
-            cardImages.push({
-                index: i,
-                src: src.substring(src.lastIndexOf('/') + 1),
-                alt,
-                className,
-                id,
-                element: img
-            });
-        }
-    });
-    
-    console.log(`Found ${cardImages.length} potential card images:`, cardImages);
-    if (cardImages.length > 0) {
-        console.log('First few card images:', cardImages.slice(0, 5));
-    }
-    
-    // 2. Find ALL SVG elements that might be cards
-    console.log('\n🎨 === CARD SVGs ===');
-    const svgs = document.querySelectorAll('svg, [class*="svg"], [class*="icon"]');
-    let cardSvgs = [];
-    svgs.forEach((svg, i) => {
-        const className = svg.className?.baseVal || svg.className || '';
-        const id = svg.id || '';
-        
-        if (className.includes('card') || className.includes('suit') || id.includes('card')) {
-            cardSvgs.push({
-                index: i,
-                className,
-                id,
-                innerHTML: svg.innerHTML.substring(0, 100),
-                element: svg
-            });
-        }
-    });
-    
-    console.log(`Found ${cardSvgs.length} potential card SVGs:`, cardSvgs);
-    
-    // 3. Look for data attributes that might contain card info
-    console.log('\n📊 === DATA ATTRIBUTES ===');
-    const allElements = document.querySelectorAll('*');
-    let cardDataElements = [];
-    
-    allElements.forEach((el, i) => {
-        const attrs = el.attributes;
-        for (let attr of attrs) {
-            const name = attr.name.toLowerCase();
-            const value = attr.value.toLowerCase();
-            
-            if ((name.includes('card') || name.includes('rank') || name.includes('suit') ||
-                 value.includes('card') || value.includes('rank') || value.includes('suit')) &&
-                cardDataElements.length < 20) { // Limit to first 20
-                
-                cardDataElements.push({
-                    tagName: el.tagName,
-                    attribute: name,
-                    value: attr.value,
-                    className: el.className,
-                    textContent: el.textContent?.trim().substring(0, 50),
-                    element: el
-                });
-            }
-        }
-    });
-    
-    console.log(`Found ${cardDataElements.length} elements with card-related data attributes:`, cardDataElements);
-    
-    // 4. Look for specific PokerNow class patterns
-    console.log('\n🎯 === POKERNOW SPECIFIC CLASSES ===');
-    const pokerNowClasses = [];
-    const classPatterns = [
-        /poker/i, /hand/i, /hole/i, /board/i, /flop/i, /turn/i, /river/i,
-        /suit/i, /rank/i, /clubs?/i, /hearts?/i, /diamonds?/i, /spades?/i,
-        /table/i, /game/i, /action/i, /bet/i, /pot/i
+    // Only inspect specific game-related containers without affecting images
+    const gameContainers = [
+        '.game-main-container',
+        '.table-player',
+        '.table-pot',
+        '[class*="hand"]',
+        '[class*="board"]'
     ];
     
-    allElements.forEach(el => {
-        const className = el.className || '';
-        if (className && classPatterns.some(pattern => pattern.test(className))) {
-            pokerNowClasses.push({
-                tagName: el.tagName,
-                className,
-                id: el.id,
-                textContent: el.textContent?.trim().substring(0, 50),
-                children: el.children.length,
-                element: el
-            });
-        }
-    });
-    
-    console.log(`Found ${pokerNowClasses.length} PokerNow-specific elements:`, pokerNowClasses.slice(0, 10));
-    
-    // 5. Look for elements with card symbols in Unicode
-    console.log('\n♠️ === UNICODE CARD SYMBOLS ===');
-    const unicodeCardElements = [];
-    const cardSymbols = /[♠♥♦♣]/;
-    
-    allElements.forEach(el => {
-        const text = el.textContent || '';
-        if (cardSymbols.test(text) && el.children.length <= 2) {
-            unicodeCardElements.push({
-                tagName: el.tagName,
-                textContent: text.trim(),
-                className: el.className,
-                id: el.id,
-                element: el
-            });
-        }
-    });
-    
-    console.log(`Found ${unicodeCardElements.length} elements with card symbols:`, unicodeCardElements);
-    
-    // 6. Look for React/Vue component props or data structures
-    console.log('\n⚛️ === REACT/VUE DATA ===');
-    allElements.forEach(el => {
-        // Check for React fiber
-        const reactKey = Object.keys(el).find(key => key.startsWith('__reactInternalInstance') || key.startsWith('_reactInternalFiber'));
-        if (reactKey && el[reactKey]) {
-            const props = el[reactKey].memoizedProps || el[reactKey].pendingProps;
-            if (props && (JSON.stringify(props).includes('card') || JSON.stringify(props).includes('suit'))) {
-                console.log('React element with card data:', {
-                    element: el,
-                    props: props,
-                    className: el.className
+    console.log('\n🎯 === SAFE GAME ELEMENT SEARCH ===');
+    gameContainers.forEach(selector => {
+        try {
+            const elements = document.querySelectorAll(selector);
+            if (elements.length > 0) {
+                console.log(`${selector}: Found ${elements.length} elements`);
+                console.log('First element:', {
+                    tagName: elements[0].tagName,
+                    className: elements[0].className,
+                    id: elements[0].id,
+                    children: elements[0].children.length
                 });
             }
+        } catch (error) {
+            console.log(`Error checking ${selector}:`, error.message);
         }
     });
     
-    // 7. Look for JavaScript variables that might contain game state
-    console.log('\n💾 === WINDOW VARIABLES ===');
-    const windowVars = [];
-    for (let key in window) {
-        try {
-            const value = window[key];
-            if (typeof value === 'object' && value !== null) {
-                const jsonStr = JSON.stringify(value).toLowerCase();
-                if (jsonStr.includes('card') || jsonStr.includes('suit') || jsonStr.includes('poker')) {
-                    windowVars.push({
-                        key,
-                        type: typeof value,
-                        hasCards: jsonStr.includes('card'),
-                        preview: JSON.stringify(value).substring(0, 200)
-                    });
-                }
-            }
-        } catch (e) {
-            // Skip variables that can't be serialized
-        }
+    // Check for our copilot without affecting other elements
+    const copilotUI = document.getElementById('pokernow-copilot');
+    console.log('\n🤖 === COPILOT STATUS ===');
+    console.log('Copilot UI present:', !!copilotUI);
+    console.log('PokerCopilot object:', !!window.PokerCopilot);
+    if (window.PokerCopilot) {
+        console.log('Initialized:', window.PokerCopilot.initialized);
+        console.log('Version:', window.PokerCopilot.version);
     }
     
-    console.log(`Found ${windowVars.length} window variables with poker data:`, windowVars);
-    
-    // 8. Inspect the actual DOM tree structure
-    console.log('\n🌳 === DOM TREE STRUCTURE ===');
-    const findDeepElements = (element, depth = 0, maxDepth = 5) => {
-        if (depth > maxDepth) return;
-        
-        const className = element.className || '';
-        const id = element.id || '';
-        const tagName = element.tagName || '';
-        
-        // Look for container elements that might hold cards
-        if (className.includes('hand') || className.includes('board') || 
-            className.includes('card') || className.includes('game')) {
-            
-            console.log(`${'  '.repeat(depth)}${tagName}.${className}#${id}`, {
-                children: element.children.length,
-                textContent: element.textContent?.trim().substring(0, 30),
-                element: element
-            });
-            
-            // Inspect direct children
-            Array.from(element.children).forEach(child => {
-                findDeepElements(child, depth + 1, maxDepth);
-            });
-        }
-    };
-    
-    findDeepElements(document.body);
-    
-    // 9. Try to find elements by common poker terms
-    console.log('\n🔍 === POKER TERM SEARCH ===');
-    const pokerTerms = ['hole', 'pocket', 'board', 'flop', 'turn', 'river', 'hand', 'card'];
-    
-    pokerTerms.forEach(term => {
-        const elements = document.querySelectorAll(`[class*="${term}"], [id*="${term}"], [data-*="${term}"]`);
-        if (elements.length > 0) {
-            console.log(`"${term}" elements:`, Array.from(elements).slice(0, 3).map(el => ({
-                tagName: el.tagName,
-                className: el.className,
-                id: el.id,
-                textContent: el.textContent?.trim().substring(0, 30),
-                element: el
-            })));
-        }
-    });
-    
-    // 10. Look for canvas elements (some sites draw cards on canvas)
-    console.log('\n🎨 === CANVAS ELEMENTS ===');
-    const canvases = document.querySelectorAll('canvas');
-    console.log(`Found ${canvases.length} canvas elements:`, Array.from(canvases).map(canvas => ({
-        className: canvas.className,
-        id: canvas.id,
-        width: canvas.width,
-        height: canvas.height,
-        element: canvas
-    })));
-    
-    console.log('\n✅ === INSPECTION COMPLETE ===');
-    console.log('👆 Look through the logs above to find where PokerNow stores card information!');
-    console.log('🔧 Use this info to update the parser selectors.');
+    console.log('\n✅ === SAFE INSPECTION COMPLETE ===');
+    console.log('🛡️ This inspection does not interfere with PokerNow\'s images or emoji rendering.');
     
     return {
-        cardImages,
-        cardSvgs,
-        cardDataElements,
-        pokerNowClasses,
-        unicodeCardElements,
-        windowVars,
-        canvases
+        url: window.location.href,
+        copilotPresent: !!copilotUI,
+        copilotInitialized: window.PokerCopilot ? window.PokerCopilot.initialized : false
     };
 };
 
@@ -617,6 +452,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     
     try {
         switch (request.action) {
+            case 'test':
+                // Simple test to verify content script communication
+                console.log('🧪 Test message received from popup');
+                sendResponse({
+                    success: true,
+                    message: 'Content script is working!',
+                    timestamp: Date.now(),
+                    url: window.location.href,
+                    copilotStatus: window.PokerCopilot ? {
+                        initialized: window.PokerCopilot.initialized,
+                        version: window.PokerCopilot.version
+                    } : null
+                });
+                break;
+                
             case 'getStatus':
                 const status = window.PokerCopilot ? window.PokerCopilot.getStatus() : null;
                 sendResponse({

@@ -504,7 +504,7 @@ class CopilotUI {
             this.currentAdvice = advice;
 
             // Update confidence (primary action frequency)
-            this.elements.confidenceLevel.textContent = `${advice.confidence}%`;
+            this.elements.confidenceLevel.textContent = `${parseFloat(advice.confidence).toFixed(1)}%`;
             this.elements.confidenceBadge.style.background = this.advisor.getConfidenceColor(advice.confidence);
 
             // Update primary action with frequency and purpose
@@ -1056,9 +1056,14 @@ class CopilotUI {
      * Update blind levels
      */
     updateBlindLevels() {
-        this.blindLevels.smallBlind = parseFloat(this.elements.sbInput.value);
-        this.blindLevels.bigBlind = parseFloat(this.elements.bbInput.value);
+        this.blindLevels.smallBlind = parseFloat(this.elements.sbInput.value) || 1;
+        this.blindLevels.bigBlind = parseFloat(this.elements.bbInput.value) || 2;
         this.advisor.updateBlindLevels(this.blindLevels);
+        // Recalculate stack depth and update advice
+        const gameState = this.parser.getGameState();
+        if (gameState && gameState.isActive) {
+            this.updateAdvice(gameState);
+        }
     }
 
     /**
@@ -1126,8 +1131,8 @@ class CopilotUI {
      * Initialize blind levels
      */
     initializeBlindLevels() {
-        this.blindLevels.smallBlind = parseFloat(this.elements.sbInput.value);
-        this.blindLevels.bigBlind = parseFloat(this.elements.bbInput.value);
+        this.blindLevels.smallBlind = parseFloat(this.elements.sbInput.value) || 1;
+        this.blindLevels.bigBlind = parseFloat(this.elements.bbInput.value) || 2;
         this.advisor.updateBlindLevels(this.blindLevels);
     }
 }

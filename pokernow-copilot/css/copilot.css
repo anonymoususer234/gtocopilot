@@ -3,12 +3,12 @@
  * Beautiful, AI code editor inspired design
  */
 
-/* PokerNow GTO Copilot Styles - Scoped to avoid interference with PokerNow */
+/* PokerNow GTO Copilot Styles - Completely isolated container */
 
 /* CSS ISOLATION - Ensure our extension is completely isolated */
 #pokernow-copilot {
     /* CSS containment to prevent style leakage */
-    contain: style layout;
+    contain: layout style paint;
     /* Isolate our styles from the parent page */
     isolation: isolate;
     position: fixed;

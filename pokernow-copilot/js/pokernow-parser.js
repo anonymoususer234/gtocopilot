@@ -159,23 +159,21 @@ class PokerNowParser {
         // Always run debug for first few times to help with troubleshooting
         if (!this.debugMode && this.parseCount > 3) return;
         
-        console.log('🔍 PokerNow Page Debug Info:', {
+        console.log('🎯 PokerNow Parser Debug - Page Elements:', {
             url: window.location.href,
             title: document.title,
-            bodyClasses: document.body.className,
+            bodyClass: document.body.className,
             
-            // Check for common game elements
+            // Count specific element types instead of selecting all
             tableElements: document.querySelectorAll('[class*="table"]').length,
             gameElements: document.querySelectorAll('[class*="game"]').length,
             cardElements: document.querySelectorAll('[class*="card"]').length,
             playerElements: document.querySelectorAll('[class*="player"]').length,
             buttonElements: document.querySelectorAll('button').length,
             
-            // Show some actual class names we find
-            sampleClassNames: Array.from(document.querySelectorAll('*'))
-                .map(el => el.className)
-                .filter(cls => cls && cls.length > 0)
-                .slice(0, 20),
+            // Safe sampling - only check body and main container classes
+            bodyClasses: document.body.className,
+            mainContainerClasses: document.querySelector('.game-main-container')?.className || 'not found',
                 
             // Check for specific text content
             hasPokerTerms: {
@@ -299,10 +297,10 @@ class PokerNowParser {
                 url: window.location.href,
                 foundElements: foundIndicators.slice(0, 5), // Show first 5 found elements
                 bodyClasses: document.body.className,
-                allClassNames: Array.from(document.querySelectorAll('*'))
-                    .map(el => el.className)
-                    .filter(cls => cls && (cls.includes('game') || cls.includes('table') || cls.includes('poker') || cls.includes('card')))
-                    .slice(0, 10) // Show first 10 relevant class names
+                // Safe class name sampling - only check specific containers
+                gameContainerClasses: document.querySelector('[class*="game"]')?.className || 'none',
+                tableContainerClasses: document.querySelector('[class*="table"]')?.className || 'none',
+                playerContainerClasses: document.querySelector('[class*="player"]')?.className || 'none'
             });
         }
         
