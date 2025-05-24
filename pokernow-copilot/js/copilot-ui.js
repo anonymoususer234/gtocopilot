@@ -4,7 +4,7 @@
  */
 
 class CopilotUI {
-    constructor(gtoAdvisor, parser) {
+      constructor(gtoAdvisor, parser) {
         this.advisor = gtoAdvisor;
         this.parser = parser;
         this.isVisible = true;
@@ -250,8 +250,99 @@ class CopilotUI {
             margin: 12px 15px 8px 15px;
             display: block;
         `;
-        
         this.ui.content.appendChild(gameDetailsToggle);
+
+        // Add Leaping AI voice agent button
+        const voiceAgentButton = document.createElement('button');
+        voiceAgentButton.className = 'voice-agent-btn';
+        voiceAgentButton.textContent = 'Explain with Voice Agent';
+        voiceAgentButton.style.cssText = `
+            width: calc(100% - 30px);
+            background: linear-gradient(135deg, #a78bfa 0%, #6366f1 100%);
+            border: none;
+            color: #ffffff;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 4px 15px 12px 15px;
+            display: block;
+        `;
+        this.ui.content.appendChild(voiceAgentButton);
+
+        // Add click handler for voice agent
+        voiceAgentButton.addEventListener('click', async () => {
+            const gameState = this.parser.getGameState();
+            const advice = this.currentAdvice || {};
+            // Prompt for Bearer token if not already stored
+            let token = 'eyJhbGciOiJIUzI1NiIsImtpZCI6IkswQnFibHIwSnlmWTVWZFciLCJ0eXAiOiJKV1QifQ.eyJhYWwiOiJhYWwxIiwiYW1yIjpbeyJtZXRob2QiOiJwYXNzd29yZCIsInRpbWVzdGFtcCI6MTc0ODA3MzE3N31dLCJhcHBfbWV0YWRhdGEiOnsiZ3JvdXBzIjp7IjVlNWRjNTFjLWJkMmMtNDE3OS05MWIzLTY2N2VmOWFjNzRiZiI6WyJlZGl0b3IiXX0sImh0dHBzOi8vYXBwLnBpaWFuby5pby9hbnktb2YiOnsicHJvcC9ncm91cF9pZCI6WyI1ZTVkYzUxYy1iZDJjLTQxNzktOTFiMy02NjdlZjlhYzc0YmYiXSwicHJvcC91c2VyX2lkIjoiYWFkYWE2MDAtOTQ0NS00YmFmLTkwM2ItYWE3MWNlOGFmZTYyIn0sImh0dHBzOi8vYXBwLnBpaWFuby5pby9yb2xlIjoiQ2FsbHNEZWNyeXB0Um9sZSIsInByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sImF1ZCI6ImF1dGhlbnRpY2F0ZWQiLCJlbWFpbCI6ImFnZW50QGhhY2tzLmNvbSIsImV4cCI6MTc0ODEwODU1MiwiaWF0IjoxNzQ4MTA0OTUyLCJpc19hbm9ueW1vdXMiOmZhbHNlLCJpc3MiOiJodHRwczovL3ZjdWd5enRicXJyc2RkZ29scWJ6LnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJwaG9uZSI6IiIsInJvbGUiOiJhdXRoZW50aWNhdGVkIiwic2Vzc2lvbl9pZCI6ImI0N2M3MzVhLWQ2ZGEtNDNiYi1hODVmLTVhNzc0OWI0YTE2NyIsInN1YiI6ImFhZGFhNjAwLTk0NDUtNGJhZi05MDNiLWFhNzFjZThhZmU2MiIsInVzZXJfbWV0YWRhdGEiOnsiZW1haWxfdmVyaWZpZWQiOnRydWV9fQ.kzT82YzV2t31dbVp2s8GSEXrZN6lgZ0LjheGjMf0yxA';
+            if (!token) {
+                token = prompt('Enter your Leaping AI Bearer token:');
+                if (!token) {
+                    alert('Bearer token is required to trigger the voice agent.');
+                    return;
+                }
+                localStorage.setItem('leaping_ai_token', token);
+            }
+            // Helper to convert suit letter to full name
+            function cardToString(card) {
+                if (typeof card === 'object' && card.rank && card.suit) {
+                    const suitMap = { d: 'diamonds', h: 'hearts', c: 'clubs', s: 'spades' };
+                    return `${card.rank} of ${suitMap[card.suit] || card.suit}`;
+                } else if (typeof card === 'string' && card.length >= 2) {
+                    const rank = card.slice(0, -1);
+                    const suit = card.slice(-1).toLowerCase();
+                    const suitMap = { d: 'diamonds', h: 'hearts', c: 'clubs', s: 'spades' };
+                    return `${rank} of ${suitMap[suit] || suit}`;
+                } else {
+                    return card;
+                }
+            }
+            // Prepare payload for Leaping AI quick-schedule
+            const payload = {
+                agent_id: '01970152-22be-7738-b8dd-33ee3a214e0e',
+                from_phone_number: '+14067807594',
+                phone_numbers_to_call: [
+                    {
+                        phone_number: '+19253362980',
+                        field_overrides: {
+                            hole_cards: (gameState.holeCards || []).map(cardToString).join(', '),
+                            board_cards: (gameState.boardCards || []).map(cardToString).join(', '),
+                            pot_size: Math.round(gameState.potSize || 0),
+                            to_call: Math.round(gameState.toCall || 0),
+                            stack: Math.round(gameState.stackSize || 0),
+                            main_action: advice.primaryAction || '',
+                            confidence: Math.round(advice.confidence || 0)
+                        }
+                    }
+                ]
+            };
+            fetch('https://api.leaping.ai/v1/calls/quick-schedule', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.scheduled_calls_count) {
+                    alert('Voice agent call scheduled!');
+                } else if (data && data.detail) {
+                    alert('Error scheduling voice agent call: ' + data.detail);
+                } else {
+                    alert('Voice agent call request sent. Check your Leaping AI dashboard for status.');
+                }
+            })
+            .catch(error => {
+                alert('Error scheduling voice agent call: ' + error.message);
+            });
+        });
         
         // Add chat assistant button
         const chatButton = document.createElement('button');
@@ -1647,7 +1738,7 @@ class CopilotUI {
      */
     getClaudeAPIKey() {
         // Development API key - replace with proper key management in production
-        return 'YOUR_CLAUDE_API_KEY_HERE';
+        return 'YOUR_API_KEY';
     }
 
     /**
