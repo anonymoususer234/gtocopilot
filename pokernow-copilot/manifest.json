@@ -11,8 +11,12 @@
   "host_permissions": [
     "https://www.pokernow.club/*",
     "https://pokernow.club/*",
-    "https://*.pokernow.club/*"
+    "https://*.pokernow.club/*",
+    "https://api.anthropic.com/*"
   ],
+  "background": {
+    "service_worker": "js/background.js"
+  },
   "content_scripts": [
     {
       "matches": [

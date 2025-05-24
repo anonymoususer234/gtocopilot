@@ -2305,7 +2305,7 @@ class GTOAdvisor {
         const actions = Object.entries(strategy)
             .filter(([action, freq]) => freq > 0)
             .sort(([,a], [,b]) => b - a)
-            .map(([action, freq]) => `${this.capitalizeAction(action)} ${freq}%`)
+            .map(([action, freq]) => `${this.capitalizeAction(action)} ${Math.round(freq)}%`)
             .join(', ');
         
         return actions;
@@ -2332,7 +2332,7 @@ class GTOAdvisor {
      */
     getPrimaryActionDisplay(primaryAction, strategy) {
         const frequency = strategy[primaryAction] || 0;
-        return `${this.capitalizeAction(primaryAction)} (${frequency}%)`;
+        return `${this.capitalizeAction(primaryAction)} (${Math.round(frequency)}%)`;
     }
 
     /**
