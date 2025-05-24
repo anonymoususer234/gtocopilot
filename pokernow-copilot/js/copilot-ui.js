@@ -705,8 +705,8 @@ class CopilotUI {
             const advice = this.advisor.getAdvice(gameState);
             this.currentAdvice = advice;
 
-            // Update confidence (primary action frequency)
-            this.elements.confidenceLevel.textContent = `${Math.round(parseFloat(advice.confidence))}%`;
+            // Update confidence (primary action frequency) - PRESERVE DECIMAL PRECISION
+            this.elements.confidenceLevel.textContent = `${parseFloat(advice.confidence).toFixed(1)}%`;
             this.elements.confidenceBadge.style.background = this.advisor.getConfidenceColor(advice.confidence);
 
             // Update primary action with frequency and purpose
@@ -739,15 +739,15 @@ class CopilotUI {
 
             this.elements.actionReasoning.innerHTML = this.formatReasoning(advice.reasoning);
 
-            // Update detailed stats with comprehensive information
+            // Update detailed stats with DECIMAL PRECISION
             if (advice.handStrength !== undefined) {
-                this.elements.handStrength.textContent = `${Math.round(advice.handStrength)}%`;
+                this.elements.handStrength.textContent = `${parseFloat(advice.handStrength).toFixed(1)}%`;
             }
             
-            // Enhanced equity display
+            // Enhanced equity display with DECIMAL PRECISION  
             if (advice.equity !== undefined) {
                 const equityText = typeof advice.equity === 'number' 
-                    ? `${Math.round(advice.equity)}%` 
+                    ? `${parseFloat(advice.equity).toFixed(1)}%` 
                     : advice.equity;
                 this.elements.equity.textContent = equityText;
             }
@@ -924,7 +924,7 @@ class CopilotUI {
                 <div class="analysis-section" style="margin-bottom: 10px;">
                     <div style="color: #00ff88; font-weight: 600; margin-bottom: 4px;">Equity Analysis</div>
                     <div style="display: flex; justify-content: space-between; flex-wrap: wrap;">
-                        ${advice.equity ? `<span style="color: #ffffff;">Equity: <strong style="color: #00ff88;">${typeof advice.equity === 'number' ? Math.round(advice.equity) + '%' : advice.equity}</strong></span>` : ''}
+                        ${advice.equity ? `<span style="color: #ffffff;">Equity: <strong style="color: #00ff88;">${typeof advice.equity === 'number' ? parseFloat(advice.equity).toFixed(1) + '%' : advice.equity}</strong></span>` : ''}
                         ${advice.potOdds !== 'N/A' ? `<span style="color: #ffffff;">Pot Odds: <strong style="color: #00ff88;">${advice.potOdds}</strong></span>` : ''}
                     </div>
                     ${advice.impliedOdds ? `<div style="margin-top: 2px; color: #ffffff;">Implied Odds: <strong style="color: #00ff88;">${advice.impliedOdds}</strong></div>` : ''}

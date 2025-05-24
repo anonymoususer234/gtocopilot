@@ -83,6 +83,30 @@ function buildSystemPrompt(gameContext) {
     let prompt = `You are a professional poker GTO (Game Theory Optimal) assistant integrated into the PokerNow Copilot. You have deep knowledge of poker strategy, mathematics, and optimal play.
 
 CURRENT GAME CONTEXT:
+
+**Game Information:**
+- Position: ${gameContext.gameState.positionName || 'Unknown'}
+- Street: ${gameContext.gameState.street || 'preflop'}
+- Stack: $${gameContext.gameState.stackSize}
+- Stack in BBs: ${Math.round(gameContext.gameState.stackSize / gameContext.blindLevels.bigBlind)}
+- Pot Size: $${gameContext.gameState.potSize}
+- To Call: $${gameContext.gameState.toCall}
+- Players: ${gameContext.gameState.activePlayers}
+
+**Current GTO Advice:**
+- Primary Action: ${gameContext.gtoAdvice.primaryAction}
+- Strategy Mix: ${Object.entries(gameContext.gtoAdvice.strategy).map(([action, freq]) => `${action}: ${parseFloat(freq).toFixed(1)}%`).join(', ')}
+- Hand Strength: ${parseFloat(gameContext.gtoAdvice.handStrength).toFixed(1)}%
+- Betting Purpose: ${gameContext.gtoAdvice.bettingPurpose}
+- Hand Type: ${gameContext.gtoAdvice.handType}
+- Equity: ${parseFloat(gameContext.gtoAdvice.equity).toFixed(1)}%
+- Position: ${gameContext.gtoAdvice.position}
+- Reasoning: ${gameContext.gtoAdvice.reasoning}
+
+💰 BLIND LEVELS:
+- Small Blind: $${gameContext.blindLevels.smallBlind}
+- Big Blind: $${gameContext.blindLevels.bigBlind}
+
 `;
 
     if (gameContext.gameState.isActive) {
@@ -98,25 +122,16 @@ CURRENT GAME CONTEXT:
 - Active Players: ${gameContext.gameState.activePlayers}
 - Your Turn: ${gameContext.gameState.isMyTurn ? 'YES' : 'NO'}
 
-💰 BLIND LEVELS:
-- Small Blind: $${gameContext.blindLevels.smallBlind}
-- Big Blind: $${gameContext.blindLevels.bigBlind}
-- Stack in BBs: ${Math.round(gameContext.gameState.stackSize / gameContext.blindLevels.bigBlind)}
-
-`;
-
-        if (gameContext.gtoAdvice) {
-            prompt += `🧠 CURRENT GTO RECOMMENDATION:
-- Primary Action: ${gameContext.gtoAdvice.primaryAction} (${gameContext.gtoAdvice.confidence}% confidence)
-- Strategy Mix: ${Object.entries(gameContext.gtoAdvice.strategy).map(([action, freq]) => `${action}: ${Math.round(freq)}%`).join(', ')}
-- Hand Strength: ${Math.round(gameContext.gtoAdvice.handStrength)}%
+🧠 CURRENT GTO RECOMMENDATION:
+- Primary Action: ${gameContext.gtoAdvice.primaryAction} (${parseFloat(gameContext.gtoAdvice.confidence).toFixed(1)}% confidence)
+- Strategy Mix: ${Object.entries(gameContext.gtoAdvice.strategy).map(([action, freq]) => `${action}: ${parseFloat(freq).toFixed(1)}%`).join(', ')}
+- Hand Strength: ${parseFloat(gameContext.gtoAdvice.handStrength).toFixed(1)}%
 - Hand Type: ${gameContext.gtoAdvice.handType}
 - Betting Purpose: ${gameContext.gtoAdvice.bettingPurpose}
-- Equity: ${Math.round(gameContext.gtoAdvice.equity)}%
+- Equity: ${parseFloat(gameContext.gtoAdvice.equity).toFixed(1)}%
 - Reasoning: ${gameContext.gtoAdvice.reasoning}
 
 `;
-        }
 
         if (gameContext.gameState.opponentBets?.length > 0) {
             prompt += `👥 OPPONENT ACTION:
