@@ -279,14 +279,18 @@ class CopilotUI {
             const gameState = this.parser.getGameState();
             const advice = this.currentAdvice || {};
             // Prompt for Bearer token if not already stored
-            let token = 'eyJhbGciOiJIUzI1NiIsImtpZCI6IkswQnFibHIwSnlmWTVWZFciLCJ0eXAiOiJKV1QifQ.eyJhYWwiOiJhYWwxIiwiYW1yIjpbeyJtZXRob2QiOiJwYXNzd29yZCIsInRpbWVzdGFtcCI6MTc0ODA3MzE3N31dLCJhcHBfbWV0YWRhdGEiOnsiZ3JvdXBzIjp7IjVlNWRjNTFjLWJkMmMtNDE3OS05MWIzLTY2N2VmOWFjNzRiZiI6WyJlZGl0b3IiXX0sImh0dHBzOi8vYXBwLnBpaWFuby5pby9hbnktb2YiOnsicHJvcC9ncm91cF9pZCI6WyI1ZTVkYzUxYy1iZDJjLTQxNzktOTFiMy02NjdlZjlhYzc0YmYiXSwicHJvcC91c2VyX2lkIjoiYWFkYWE2MDAtOTQ0NS00YmFmLTkwM2ItYWE3MWNlOGFmZTYyIn0sImh0dHBzOi8vYXBwLnBpaWFuby5pby9yb2xlIjoiQ2FsbHNEZWNyeXB0Um9sZSIsInByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sImF1ZCI6ImF1dGhlbnRpY2F0ZWQiLCJlbWFpbCI6ImFnZW50QGhhY2tzLmNvbSIsImV4cCI6MTc0ODEwODU1MiwiaWF0IjoxNzQ4MTA0OTUyLCJpc19hbm9ueW1vdXMiOmZhbHNlLCJpc3MiOiJodHRwczovL3ZjdWd5enRicXJyc2RkZ29scWJ6LnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJwaG9uZSI6IiIsInJvbGUiOiJhdXRoZW50aWNhdGVkIiwic2Vzc2lvbl9pZCI6ImI0N2M3MzVhLWQ2ZGEtNDNiYi1hODVmLTVhNzc0OWI0YTE2NyIsInN1YiI6ImFhZGFhNjAwLTk0NDUtNGJhZi05MDNiLWFhNzFjZThhZmU2MiIsInVzZXJfbWV0YWRhdGEiOnsiZW1haWxfdmVyaWZpZWQiOnRydWV9fQ.kzT82YzV2t31dbVp2s8GSEXrZN6lgZ0LjheGjMf0yxA';
+            let token = localStorage.getItem('leaping_ai_token');
             if (!token) {
-                token = prompt('Enter your Leaping AI Bearer token:');
+                token = prompt('Enter your Leaping AI Bearer token (get from leaping.ai dashboard):');
                 if (!token) {
                     alert('Bearer token is required to trigger the voice agent.');
                     return;
                 }
-                localStorage.setItem('leaping_ai_token', token);
+                // Validate token format (should be a proper JWT with 3 parts)
+                if (token.split('.').length !== 3) {
+                    alert('Invalid token format. Please enter a valid JWT token from your Leaping AI dashboard.');
+                    return;
+                }
             }
             // Helper to convert suit letter to full name
             function cardToString(card) {
@@ -321,27 +325,44 @@ class CopilotUI {
                     }
                 ]
             };
-            fetch('https://api.leaping.ai/v1/calls/quick-schedule', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(payload)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data && data.scheduled_calls_count) {
-                    alert('Voice agent call scheduled!');
+            try {
+                voiceAgentButton.textContent = 'Scheduling call...';
+                voiceAgentButton.disabled = true;
+                
+                const response = await fetch('https://api.leaping.ai/v1/calls/quick-schedule', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data && data.scheduled_calls_count) {
+                    alert('✅ Voice agent call scheduled successfully!');
                 } else if (data && data.detail) {
-                    alert('Error scheduling voice agent call: ' + data.detail);
+                    throw new Error(data.detail);
+                } else if (data && data.message) {
+                    throw new Error(data.message);
                 } else {
-                    alert('Voice agent call request sent. Check your Leaping AI dashboard for status.');
+                    throw new Error(`API responded with status ${response.status}`);
                 }
-            })
-            .catch(error => {
-                alert('Error scheduling voice agent call: ' + error.message);
-            });
+            } catch (error) {
+                console.error('Voice agent error:', error);
+                
+                // If it's a token-related error, clear the stored token
+                if (error.message.includes('token') || error.message.includes('auth') || error.message.includes('JWT')) {
+                    localStorage.removeItem('leaping_ai_token');
+                    alert('❌ Token error: ' + error.message + '\n\nPlease get a fresh token from your Leaping AI dashboard.');
+                } else {
+                    alert('❌ Error scheduling voice agent call: ' + error.message);
+                }
+            } finally {
+                voiceAgentButton.textContent = 'Explain with Voice Agent';
+                voiceAgentButton.disabled = false;
+            }
         });
         
         // Add chat assistant button
