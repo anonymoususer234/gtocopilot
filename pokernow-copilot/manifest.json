@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PokerNow GTO Copilot",
-  "version": "2.6",
+  "version": "2.7",
   "description": "Real-time GTO poker advice with Monte Carlo realism for PokerNow.com",
   "permissions": [
     "activeTab",

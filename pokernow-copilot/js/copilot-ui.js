@@ -127,10 +127,6 @@ class CopilotUI {
         this.ui.advice.innerHTML = `
             <div class="advice-header">
                 <h3>RECOMMENDED ACTION</h3>
-                <div class="confidence-badge">
-                    <span class="confidence-level">--</span>
-                    <span class="confidence-text">Confidence</span>
-                </div>
             </div>
             <div class="advice-content">
                 <div class="primary-action" style="background: rgba(0, 255, 136, 0.1); border: 2px solid #00ff88; border-radius: 8px; padding: 15px; margin: 10px 0; text-align: center;">
@@ -442,8 +438,6 @@ class CopilotUI {
             potSize: this.ui.container.querySelector('.pot-size'),
             toCall: this.ui.container.querySelector('.to-call'),
             stackSize: this.ui.container.querySelector('.stack-size'),
-            confidenceLevel: this.ui.container.querySelector('.confidence-level'),
-            confidenceBadge: this.ui.container.querySelector('.confidence-badge'),
             actionText: this.ui.container.querySelector('.action-text'),
             actionAmount: this.ui.container.querySelector('.action-amount'),
             actionReasoning: this.ui.container.querySelector('.action-reasoning'),
@@ -726,10 +720,6 @@ class CopilotUI {
             const advice = this.advisor.getAdvice(gameState);
             this.currentAdvice = advice;
 
-            // Update confidence (primary action frequency) - PRESERVE DECIMAL PRECISION
-            this.elements.confidenceLevel.textContent = `${parseFloat(advice.confidence).toFixed(1)}%`;
-            this.elements.confidenceBadge.style.background = this.advisor.getConfidenceColor(advice.confidence);
-
             // Update primary action with frequency and purpose
             let primaryActionHtml = `
                 <div class="primary-action-main">${this.advisor.getPrimaryActionDisplay(advice.primaryAction, advice.strategy)}</div>
@@ -786,13 +776,6 @@ class CopilotUI {
             // Add frequency bars for visual representation
             this.addFrequencyBars(advice.strategy);
 
-            // Add urgency animation if it's player's turn
-            if (gameState.isMyTurn) {
-                this.elements.confidenceBadge.style.animation = this.animations.pulse;
-            } else {
-                this.elements.confidenceBadge.style.animation = 'none';
-            }
-            
         } catch (error) {
             console.error('❌ Error getting GTO advice:', error);
             
@@ -828,9 +811,6 @@ class CopilotUI {
         }
         
         // Update UI with fallback advice
-        this.elements.confidenceLevel.textContent = `${confidence}%`;
-        this.elements.confidenceBadge.style.background = 'rgba(255, 255, 255, 0.2)';
-        
         this.elements.actionText.innerHTML = `
             <div class="primary-action-main">${fallbackAction} (${confidence}%)</div>
             <div class="strategy-frequencies">Basic fallback advice</div>
@@ -1168,9 +1148,6 @@ class CopilotUI {
         this.elements.actionText.innerHTML = 'Waiting for hand...';
         this.elements.actionAmount.style.display = 'none';
         this.elements.actionReasoning.textContent = 'Join a poker game to receive real-time GTO strategy advice with frequencies';
-        this.elements.confidenceLevel.textContent = '--';
-        this.elements.confidenceBadge.style.background = '#6c757d';
-        this.elements.confidenceBadge.style.animation = 'none';
         
         // Clear detailed stats
         this.elements.handStrength.textContent = '--';

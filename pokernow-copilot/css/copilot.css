@@ -265,22 +265,6 @@
     color: #00ff88;
 }
 
-#pokernow-copilot .confidence-badge {
-    background: rgba(0, 255, 136, 0.2);
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 10px;
-    color: #000000;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    transition: background-color 0.3s ease;
-}
-
-#pokernow-copilot .confidence-level {
-    font-weight: bold;
-}
-
 #pokernow-copilot .primary-action {
     margin-bottom: 10px;
 }
