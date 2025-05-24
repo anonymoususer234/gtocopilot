@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test PokerNow Copilot Engine</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #1e1e1e; color: #e0e0e0; }
+        .test { background: #2d2d2d; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid #4CAF50; }
+        .error { border-left-color: #f44336; }
+        button { background: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        input, select { background: #3d3d3d; color: white; border: 1px solid #555; padding: 8px; border-radius: 4px; margin: 5px; }
+        .card { background: white; color: black; padding: 2px 6px; border-radius: 3px; margin: 2px; display: inline-block; font-weight: bold; }
+        .red { color: #e74c3c; }
+    </style>
+</head>
+<body>
+    <h1>🎯 PokerNow Copilot - Engine Test</h1>
+    
+    <div>
+        <h2>Quick Test</h2>
+        <p>This tests if the poker engine components are working.</p>
+        <button onclick="runQuickTest()">Run Test</button>
+        <div id="test-results"></div>
+    </div>
+    
+    <div>
+        <h2>Interactive Hand Analyzer</h2>
+        <label>Your Cards: </label>
+        <input type="text" id="hole-cards" value="Ah,Kh" placeholder="Ah,Kh">
+        
+        <label>Board: </label>
+        <input type="text" id="board" value="Qh,Jh,Tc" placeholder="Qh,Jh,Tc">
+        
+        <label>Position: </label>
+        <select id="position">
+            <option value="BTN">Button</option>
+            <option value="CO">Cutoff</option>
+            <option value="MP">Middle</option>
+            <option value="EP">Early</option>
+            <option value="SB">Small Blind</option>
+            <option value="BB">Big Blind</option>
+        </select>
+        
+        <button onclick="analyzeHand()">Analyze Hand</button>
+        <div id="analysis-results"></div>
+    </div>
+
+    <!-- Load poker engine scripts -->
+    <script src="js/poker-engine.js"></script>
+    <script src="js/equity-calculator.js"></script>
+    <script src="js/gto-advisor.js"></script>
+
+    <script>
+        let engine, equity, advisor;
+        
+        function addResult(container, content, isError = false) {
+            const div = document.createElement('div');
+            div.className = 'test' + (isError ? ' error' : '');
+            div.innerHTML = content;
+            document.getElementById(container).appendChild(div);
+        }
+        
+        function initializeEngine() {
+            try {
+                engine = new PokerEngine();
+                equity = new EquityCalculator(engine);
+                advisor = new GTOAdvisor(engine, equity);
+                return true;
+            } catch (error) {
+                console.error('Failed to initialize engine:', error);
+                return false;
+            }
+        }
+        
+        function runQuickTest() {
+            document.getElementById('test-results').innerHTML = '';
+            
+            if (!initializeEngine()) {
+                addResult('test-results', '❌ Failed to initialize poker engine', true);
+                return;
+            }
+            
+            addResult('test-results', '✅ Poker engine initialized successfully');
+            
+            // Test hand evaluation
+            try {
+                const cards = engine.parseCards('Ah,Kh,Qh,Jh,Th');
+                const result = engine.evaluateHand(cards);
+                addResult('test-results', `✅ Hand evaluation: ${result.description} (${result.type})`);
+            } catch (error) {
+                addResult('test-results', `❌ Hand evaluation failed: ${error.message}`, true);
+            }
+            
+            // Test equity calculation
+            try {
+                const holeCards = engine.parseCards('Ah,Kh');
+                const boardCards = engine.parseCards('Qh,Jh,Tc');
+                const outs = equity.calculateOuts(holeCards, boardCards);
+                addResult('test-results', `✅ Outs calculation: ${outs.outs} outs (${outs.description})`);
+            } catch (error) {
+                addResult('test-results', `❌ Outs calculation failed: ${error.message}`, true);
+            }
+            
+            // Test GTO advice
+            try {
+                const gameState = {
+                    holeCards: engine.parseCards('Ah,Kh'),
+                    boardCards: engine.parseCards('Qh,Jh,Tc'),
+                    position: 'BTN',
+                    potSize: 20,
+                    toCall: 5,
+                    canRaise: true,
+                    activePlayers: 3,
+                    stackSize: 100,
+                    street: 'flop'
+                };
+                
+                const advice = advisor.getAdvice(gameState);
+                addResult('test-results', `✅ GTO advice: ${advice.action} (${advice.confidence}% confidence)`);
+                addResult('test-results', `&nbsp;&nbsp;&nbsp;&nbsp;${advice.reasoning}`);
+            } catch (error) {
+                addResult('test-results', `❌ GTO advice failed: ${error.message}`, true);
+            }
+            
+            addResult('test-results', '<strong>🎉 All tests completed!</strong>');
+        }
+        
+        function analyzeHand() {
+            document.getElementById('analysis-results').innerHTML = '';
+            
+            if (!initializeEngine()) {
+                addResult('analysis-results', '❌ Failed to initialize poker engine', true);
+                return;
+            }
+            
+            try {
+                const holeCardsStr = document.getElementById('hole-cards').value;
+                const boardStr = document.getElementById('board').value;
+                const position = document.getElementById('position').value;
+                
+                const holeCards = engine.parseCards(holeCardsStr);
+                const boardCards = engine.parseCards(boardStr);
+                
+                if (holeCards.length !== 2) {
+                    addResult('analysis-results', '❌ Please enter exactly 2 hole cards (e.g., Ah,Kh)', true);
+                    return;
+                }
+                
+                // Display cards
+                const formatCard = (card) => {
+                    const color = (card.suit === 'h' || card.suit === 'd') ? 'red' : 'black';
+                    const symbol = { 's': '♠', 'h': '♥', 'd': '♦', 'c': '♣' }[card.suit];
+                    return `<span class="card ${color}">${card.rank}${symbol}</span>`;
+                };
+                
+                const holeDisplay = holeCards.map(formatCard).join(' ');
+                const boardDisplay = boardCards.map(formatCard).join(' ');
+                
+                addResult('analysis-results', `<strong>Hand Analysis</strong>`);
+                addResult('analysis-results', `Your Cards: ${holeDisplay}`);
+                if (boardCards.length > 0) {
+                    addResult('analysis-results', `Board: ${boardDisplay}`);
+                }
+                
+                // Create game state
+                const gameState = {
+                    holeCards: holeCards,
+                    boardCards: boardCards,
+                    position: position,
+                    potSize: 20,
+                    toCall: 5,
+                    canRaise: true,
+                    activePlayers: 3,
+                    stackSize: 100,
+                    street: boardCards.length === 0 ? 'preflop' : 
+                           boardCards.length === 3 ? 'flop' :
+                           boardCards.length === 4 ? 'turn' : 'river'
+                };
+                
+                // Get advice
+                const advice = advisor.getAdvice(gameState);
+                
+                addResult('analysis-results', '');
+                addResult('analysis-results', `<strong>🎯 Recommendation: ${advice.action.toUpperCase()}</strong>`);
+                addResult('analysis-results', `Confidence: ${advice.confidence}%`);
+                addResult('analysis-results', `Reasoning: ${advice.reasoning}`);
+                
+                if (advice.handStrength !== undefined) {
+                    addResult('analysis-results', `Hand Strength: ${Math.round(advice.handStrength)}%`);
+                }
+                
+                // Calculate outs if on flop or turn
+                if (boardCards.length >= 3 && boardCards.length <= 4) {
+                    const outs = equity.calculateOuts(holeCards, boardCards);
+                    addResult('analysis-results', `Outs: ${outs.outs} (${outs.description})`);
+                }
+                
+            } catch (error) {
+                addResult('analysis-results', `❌ Analysis failed: ${error.message}`, true);
+            }
+        }
+        
+        // Auto-run test on load
+        window.onload = () => {
+            setTimeout(runQuickTest, 500);
+        };
+    </script>
+</body>
+</html> 
